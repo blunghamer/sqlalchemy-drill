@@ -78,6 +78,33 @@ class Cursor(object):
         )
 
     @staticmethod
+    def parse_column_types_schema(df, column_metadata):
+        print(column_metadata)        
+        names = []
+        types = []
+        try:
+            for column,coltype in zip(df, column_metadata):
+                names.append(column)               
+                if coltype['type'].startswith('VARCHAR'):
+                    types.append("varchar")
+                elif coltype['type'].startswith('BIGINT') or coltype['type'].startswith('INT'):
+                    df[column] = df[column].astype(int)
+                    types.append("bigint")
+                elif coltype['type'].startswith('BIGDECIMAL') or coltype['type'].startswith('FLOAT'):
+                    df[column] = df[column].astype(float)
+                    types.append("decimal")
+                elif coltype['type'].startswith('TIMESTAMP') or coltype['type'].startswith('DATE'):    
+                    df[column] = to_datetime(df[column])
+                    types.append("timestamp")
+                else:
+                    types.append("varchar")                    
+        except Exception as ex:
+            print("************************************")
+            print("Error in Cursor.parse_column_types", str(ex))
+            print("************************************")
+        return names, types
+
+    @staticmethod
     def parse_column_types(df):
         names = []
         types = []
@@ -157,7 +184,7 @@ class Cursor(object):
                 self._resultSetMetadata = column_metadata
                 self.rowcount = len(self._resultSet)
                 self._resultSetStatus = iter(range(len(self._resultSet)))
-                column_names, column_types = self.parse_column_types(self._resultSet)
+                column_names, column_types = self.parse_column_types_schema(self._resultSet,column_metadata)
                 try:
                     self.description = tuple(
                         zip(
